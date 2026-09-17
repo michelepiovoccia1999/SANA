@@ -28,7 +28,9 @@ export function escapeAttr(s) {
 export function defaultMeals() {
   return [
     { id: uid(), name: "Colazione", options: [{ id: uid(), items: [] }] },
+    { id: uid(), name: "Spuntino mattutino", options: [{ id: uid(), items: [] }] },
     { id: uid(), name: "Pranzo", options: [{ id: uid(), items: [] }] },
+    { id: uid(), name: "Spuntino pomeridiano", options: [{ id: uid(), items: [] }] },
     { id: uid(), name: "Cena", options: [{ id: uid(), items: [] }] },
   ];
 }

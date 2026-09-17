@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SANA — piano alimentare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js" onerror="window.SANA_CONFIG_MISSING=true"></script>
+<style>
+  :root{
+    --bg:#f6f7f5; --surface:#ffffff; --border:#e3e5e0; --text:#1f2420; --muted:#6b746c;
+    --accent:#3f7d5c; --accent-dark:#2e5f45; --danger:#b3492f; --done:#3f7d5c;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14171a; --surface:#1c2023; --border:#2b3034; --text:#e9ede9; --muted:#9aa39c;
+      --accent:#5fa47f; --accent-dark:#4a8968; --danger:#d1705a; --done:#5fa47f; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;}
+  #app{max-width:720px;margin:0 auto;padding:16px 16px 80px;min-height:100vh;}
+  h1{font-size:1.3rem;margin:0 0 4px}
+  h2{font-size:1.05rem;margin:0 0 10px}
+  .muted{color:var(--muted);font-size:.85rem}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  input,select,button,textarea{font-family:inherit;font-size:1rem}
+  input[type=text],input[type=password],input[type=number],select,textarea{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text);
+  }
+  label{font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px}
+  .field{margin-bottom:12px}
+  button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-weight:600;background:var(--accent);color:#fff;}
+  button:hover{background:var(--accent-dark)}
+  button.secondary{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  button.secondary:hover{background:var(--accent);color:#fff}
+  button.danger{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+  button.danger:hover{background:var(--danger);color:#fff}
+  button.ghost{background:transparent;color:var(--muted);border:1px solid var(--border);padding:6px 10px;font-weight:500}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row.between{justify-content:space-between}
+  .hidden{display:none !important}
+  #login-screen{max-width:360px;margin:80px auto;padding:0 16px}
+  #login-screen .card{padding:24px}
+  .error{color:var(--danger);font-size:.85rem;margin-top:6px}
+  .badge{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:20px;background:var(--border);color:var(--muted)}
+  nav.tabs{display:flex;gap:6px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px}
+  nav.tabs button{flex:1;background:transparent;color:var(--muted);padding:8px}
+  nav.tabs button.active{background:var(--accent);color:#fff}
+  .day-tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px}
+  .day-tabs button{flex-shrink:0;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:6px 12px}
+  .day-tabs button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .meal{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
+  .meal-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .meal-title input{font-weight:600;border:none;background:transparent;padding:2px 0;width:auto;flex:1}
+  .option{border:1px dashed var(--border);border-radius:10px;padding:10px;margin-bottom:8px}
+  .option-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .item-row{display:flex;gap:6px;margin-bottom:6px}
+  .item-row input:first-child{flex:2}
+  .item-row input:last-child{flex:1}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .today-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .option-choice{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer}
+  .option-choice.selected{border-color:var(--accent);background:rgba(63,125,92,.08)}
+  .option-choice .items{font-size:.85rem;color:var(--muted)}
+  .meal-block{margin-bottom:16px}
+  .meal-block .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .check.done{background:var(--done);border-color:var(--done);color:#fff}
+  .bar-bg{background:var(--border);border-radius:8px;height:8px;overflow:hidden}
+  .bar-fill{background:var(--accent);height:100%}
+  .history-day{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+  .history-day:last-child{border-bottom:none}
+  .version-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+  .version-item:last-child{border-bottom:none}
+  a.linklike{color:var(--accent);cursor:pointer;text-decoration:underline}
+  .storico-tabs{display:flex;gap:6px;margin-bottom:14px}
+  .storico-tabs button{background:var(--surface);border:1px solid var(--border);color:var(--muted)}
+  .storico-tabs button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+
+<div id="config-warning" class="hidden" style="max-width:480px;margin:80px auto;padding:0 16px">
+  <div class="card">
+    <h2>Configurazione mancante</h2>
+    <p class="muted">Imposta <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> in cima a <code>sana.html</code> per collegare l'app al tuo progetto Supabase. Vedi <code>docs/supabase-schema.sql</code> per lo schema del database.</p>
+  </div>
+</div>
+
+<div id="login-screen" class="hidden">
+  <div class="card">
+    <h1>SANA</h1>
+    <p class="muted" id="login-subtitle">Accedi con username e password</p>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="login-username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+    </div>
+    <div id="login-error" class="error hidden"></div>
+    <div class="row" style="margin-top:16px">
+      <button id="login-submit" style="flex:1">Accedi</button>
+    </div>
+    <p class="muted" style="margin-top:14px;text-align:center">
+      <span id="toggle-mode-text">Non hai un account?</span>
+      <a class="linklike" id="toggle-mode">Registrati</a>
+    </p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="top-bar">
+    <div>
+      <h1>SANA</h1>
+      <span class="muted" id="whoami"></span>
+    </div>
+    <button class="ghost" id="logout-btn">Esci</button>
+  </div>
+
+  <nav class="tabs">
+    <button data-tab="piano" class="active">Piano</button>
+    <button data-tab="oggi">Oggi</button>
+    <button data-tab="storico">Storico</button>
+  </nav>
+
+  <section id="tab-piano">
+    <div class="day-tabs" id="plan-day-tabs"></div>
+    <div class="row between" style="margin-bottom:12px">
+      <div class="row">
+        <select id="copy-target"></select>
+        <button class="secondary" id="copy-day-btn">Copia su</button>
+      </div>
+      <button id="archive-plan-btn">Archivia piano</button>
+    </div>
+    <div id="plan-meals"></div>
+    <button class="secondary" id="add-meal-btn">+ Aggiungi pasto</button>
+  </section>
+
+  <section id="tab-oggi" class="hidden">
+    <div class="today-header">
+      <button class="ghost" id="prev-day">‹</button>
+      <div style="text-align:center">
+        <div id="today-label" style="font-weight:600"></div>
+        <div class="muted" id="today-date"></div>
+      </div>
+      <button class="ghost" id="next-day">›</button>
+    </div>
+    <div id="today-meals"></div>
+  </section>
+
+  <section id="tab-storico" class="hidden">
+    <div class="storico-tabs">
+      <button data-storico="andamento" class="active">Andamento</button>
+      <button data-storico="versioni">Piani salvati</button>
+    </div>
+    <div id="storico-andamento">
+      <div class="card" id="andamento-list"></div>
+    </div>
+    <div id="storico-versioni" class="hidden">
+      <div class="card" id="versions-list"></div>
+      <div id="version-detail"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ====================== CONFIGURAZIONE SUPABASE ======================
+   Crea un progetto su https://supabase.com, esegui docs/supabase-schema.sql
+   nell'SQL editor, poi copia config.example.js in config.js e incolla lì
+   URL e anon key (Project Settings > API). config.js non va versionato. */
+const cfg = window.SANA_CONFIG || {};
+const SUPABASE_URL = cfg.SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY || "";
+/* ====================================================================== */
+
+const FAKE_EMAIL_DOMAIN = "sana.local";
+const DAYS = [
+  { id: "mon", label: "Lunedì" },
+  { id: "tue", label: "Martedì" },
+  { id: "wed", label: "Mercoledì" },
+  { id: "thu", label: "Giovedì" },
+  { id: "fri", label: "Venerdì" },
+  { id: "sat", label: "Sabato" },
+  { id: "sun", label: "Domenica" },
+];
+const DAY_INDEX = { mon:1, tue:2, wed:3, thu:4, fri:5, sat:6, sun:0 };
+
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+function dayLabel(id){ return DAYS.find(d=>d.id===id)?.label || id; }
+function dateToDay(date){
+  const jsDay = date.getDay();
+  return Object.keys(DAY_INDEX).find(k => DAY_INDEX[k] === jsDay);
+}
+function fmtDate(date){
+  return date.toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' });
+}
+function isoDate(date){
+  const y=date.getFullYear(), m=String(date.getMonth()+1).padStart(2,'0'), d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function defaultMeals(){
+  return [
+    { id: uid(), name: "Colazione", options: [{ id: uid(), items: [] }] },
+    { id: uid(), name: "Pranzo", options: [{ id: uid(), items: [] }] },
+    { id: uid(), name: "Cena", options: [{ id: uid(), items: [] }] },
+  ];
+}
+function emptyPlan(){
+  const p = {};
+  DAYS.forEach(d => { p[d.id] = { day: d.id, label: d.label, meals: defaultMeals() }; });
+  return p;
+}
+
+let supabase = null;
+let session = null;
+let plan = emptyPlan();
+let logsCache = {}; // date -> {mealId: {optionId, done, doneAt}}
+let versionsCache = [];
+let currentPlanDay = "mon";
+let currentTodayDate = new Date();
+let currentTab = "piano";
+let currentStorico = "andamento";
+let saveTimers = {};
+
+function el(id){ return document.getElementById(id); }
+
+function init(){
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY){
+    el('config-warning').classList.remove('hidden');
+    return;
+  }
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  bindLoginUI();
+  bindAppUI();
+
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session){ onLogin(data.session); } else { showLogin(); }
+  });
+  supabase.auth.onAuthStateChange((event, sess) => {
+    if (event === 'SIGNED_OUT'){ showLogin(); }
+  });
+}
+
+function showLogin(){
+  el('login-screen').classList.remove('hidden');
+  el('app').classList.add('hidden');
+}
+
+let registerMode = false;
+function bindLoginUI(){
+  el('toggle-mode').addEventListener('click', () => {
+    registerMode = !registerMode;
+    el('login-submit').textContent = registerMode ? 'Registrati' : 'Accedi';
+    el('login-subtitle').textContent = registerMode ? 'Crea un nuovo account' : 'Accedi con username e password';
+    el('toggle-mode-text').textContent = registerMode ? 'Hai già un account?' : 'Non hai un account?';
+    el('toggle-mode').textContent = registerMode ? 'Accedi' : 'Registrati';
+    el('login-error').classList.add('hidden');
+  });
+
+  el('login-submit').addEventListener('click', async () => {
+    const username = el('login-username').value.trim().toLowerCase();
+    const password = el('login-password').value;
+    const errBox = el('login-error');
+    errBox.classList.add('hidden');
+    if (!username || !password){
+      errBox.textContent = 'Inserisci username e password.';
+      errBox.classList.remove('hidden');
+      return;
+    }
+    const email = `${username}@${FAKE_EMAIL_DOMAIN}`;
+    el('login-submit').disabled = true;
+    try{
+      if (registerMode){
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data.session){ onLogin(data.session); }
+        else { errBox.textContent = 'Registrazione completata, ora accedi.'; errBox.classList.remove('hidden'); registerMode=false; el('toggle-mode').click(); el('toggle-mode').click(); }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onLogin(data.session);
+      }
+    } catch(e){
+      errBox.textContent = translateAuthError(e.message);
+      errBox.classList.remove('hidden');
+    } finally {
+      el('login-submit').disabled = false;
+    }
+  });
+}
+
+function translateAuthError(msg){
+  if (/invalid login credentials/i.test(msg)) return 'Username o password errati.';
+  if (/already registered/i.test(msg)) return 'Username già in uso.';
+  if (/password.*6/i.test(msg)) return 'La password deve avere almeno 6 caratteri.';
+  return msg;
+}
+
+async function onLogin(sess){
+  session = sess;
+  el('login-screen').classList.add('hidden');
+  el('app').classList.remove('hidden');
+  el('whoami').textContent = session.user.email.replace(`@${FAKE_EMAIL_DOMAIN}`, '');
+  await loadAllData();
+  renderAll();
+}
+
+function bindAppUI(){
+  el('logout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+  });
+
+  document.querySelectorAll('nav.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTab = btn.dataset.tab;
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b===btn));
+      ['piano','oggi','storico'].forEach(t => el('tab-'+t).classList.toggle('hidden', t!==currentTab));
+      if (currentTab==='oggi') renderToday();
+      if (currentTab==='storico') renderStorico();
+    });
+  });
+
+  document.querySelectorAll('.storico-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentStorico = btn.dataset.storico;
+      document.querySelectorAll('.storico-tabs button').forEach(b => b.classList.toggle('active', b===btn));
+      el('storico-andamento').classList.toggle('hidden', currentStorico!=='andamento');
+      el('storico-versioni').classList.toggle('hidden', currentStorico!=='versioni');
+      if (currentStorico==='andamento') renderAndamento();
+      if (currentStorico==='versioni') renderVersions();
+    });
+  });
+
+  el('add-meal-btn').addEventListener('click', () => {
+    plan[currentPlanDay].meals.push({ id: uid(), name: "Nuovo pasto", options: [{ id: uid(), items: [] }] });
+    schedulePersistPlanDay(currentPlanDay);
+    renderPlan();
+  });
+
+  el('copy-day-btn').addEventListener('click', () => {
+    const target = el('copy-target').value;
+    if (!target || target === currentPlanDay) return;
+    plan[target] = {
+      day: target,
+      label: dayLabel(target),
+      meals: JSON.parse(JSON.stringify(plan[currentPlanDay].meals)).map(m => ({
+        ...m, id: uid(), options: m.options.map(o => ({ ...o, id: uid(), items: o.items.map(it => ({...it, id: uid()})) }))
+      }))
+    };
+    schedulePersistPlanDay(target);
+    alert(`Piano copiato su ${dayLabel(target)}`);
+  });
+
+  el('archive-plan-btn').addEventListener('click', async () => {
+    const label = prompt('Nome per questa versione del piano (es. "Dieta settembre"):', new Date().toLocaleDateString('it-IT'));
+    if (label === null) return;
+    await saveCurrentPlanAsVersion(label);
+    alert('Piano archiviato.');
+  });
+
+  el('prev-day').addEventListener('click', () => { currentTodayDate.setDate(currentTodayDate.getDate()-1); renderToday(); });
+  el('next-day').addEventListener('click', () => { currentTodayDate.setDate(currentTodayDate.getDate()+1); renderToday(); });
+
+  el('plan-day-tabs').innerHTML = DAYS.map(d => `<button data-day="${d.id}">${d.label.slice(0,3)}</button>`).join('');
+  el('plan-day-tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-day]');
+    if (!btn) return;
+    currentPlanDay = btn.dataset.day;
+    renderPlan();
+  });
+
+  el('copy-target').innerHTML = DAYS.map(d => `<option value="${d.id}">${d.label}</option>`).join('');
+}
+
+/* ---------------------- Data loading / persistence ---------------------- */
+
+async function loadAllData(){
+  const uid_ = session.user.id;
+  const [{ data: planRows }, { data: logRows }, { data: versionRows }] = await Promise.all([
+    supabase.from('plan_days').select('*').eq('user_id', uid_),
+    supabase.from('logs').select('*').eq('user_id', uid_),
+    supabase.from('plan_versions').select('*').eq('user_id', uid_).order('saved_at', { ascending: false }),
+  ]);
+
+  plan = emptyPlan();
+  (planRows || []).forEach(row => {
+    plan[row.day] = { day: row.day, label: row.label || dayLabel(row.day), meals: row.meals && row.meals.length ? row.meals : defaultMeals() };
+  });
+
+  logsCache = {};
+  (logRows || []).forEach(row => { logsCache[row.date] = row.meals || {}; });
+
+  versionsCache = versionRows || [];
+}
+
+function schedulePersistPlanDay(day){
+  clearTimeout(saveTimers['plan_'+day]);
+  saveTimers['plan_'+day] = setTimeout(() => persistPlanDay(day), 500);
+}
+async function persistPlanDay(day){
+  const p = plan[day];
+  await supabase.from('plan_days').upsert({
+    user_id: session.user.id, day, label: p.label, meals: p.meals, updated_at: new Date().toISOString()
+  });
+}
+
+function scheduleSaveLog(date){
+  clearTimeout(saveTimers['log_'+date]);
+  saveTimers['log_'+date] = setTimeout(() => persistLog(date), 300);
+}
+async function persistLog(date){
+  const day = dateToDay(new Date(date+'T00:00:00'));
+  await supabase.from('logs').upsert({
+    user_id: session.user.id, date, day, meals: logsCache[date] || {}, updated_at: new Date().toISOString()
+  });
+}
+
+async function saveCurrentPlanAsVersion(label){
+  const days = JSON.parse(JSON.stringify(plan));
+  const { data, error } = await supabase.from('plan_versions').insert({
+    user_id: session.user.id, label: label || '', days
+  }).select().single();
+  if (!error && data) versionsCache.unshift(data);
+}
+
+/* ---------------------------- Render: Piano ---------------------------- */
+
+function renderAll(){
+  renderPlan();
+  renderToday();
+  renderStorico();
+}
+
+function renderPlan(){
+  document.querySelectorAll('#plan-day-tabs button').forEach(b => b.classList.toggle('active', b.dataset.day === currentPlanDay));
+  const container = el('plan-meals');
+  const meals = plan[currentPlanDay].meals;
+  container.innerHTML = '';
+  meals.forEach((meal, mi) => {
+    const mealEl = document.createElement('div');
+    mealEl.className = 'meal';
+    mealEl.innerHTML = `
+      <div class="meal-title">
+        <input type="text" value="${escapeAttr(meal.name)}" data-role="meal-name">
+        <button class="ghost" data-role="del-meal">✕</button>
+      </div>
+      <div class="options"></div>
+      <button class="secondary" data-role="add-option" style="padding:6px 10px;font-size:.85rem">+ Alternativa</button>
+    `;
+    mealEl.querySelector('[data-role=meal-name]').addEventListener('input', e => {
+      meal.name = e.target.value; schedulePersistPlanDay(currentPlanDay);
+    });
+    mealEl.querySelector('[data-role=del-meal]').addEventListener('click', () => {
+      if (!confirm('Eliminare questo pasto?')) return;
+      meals.splice(mi,1); schedulePersistPlanDay(currentPlanDay); renderPlan();
+    });
+    mealEl.querySelector('[data-role=add-option]').addEventListener('click', () => {
+      meal.options.push({ id: uid(), items: [] }); schedulePersistPlanDay(currentPlanDay); renderPlan();
+    });
+
+    const optionsEl = mealEl.querySelector('.options');
+    meal.options.forEach((opt, oi) => {
+      const optEl = document.createElement('div');
+      optEl.className = 'option';
+      optEl.innerHTML = `
+        <div class="option-header">
+          <span class="badge">Opzione ${oi+1}</span>
+          <button class="ghost" data-role="del-option" style="padding:2px 8px">✕</button>
+        </div>
+        <div class="items"></div>
+        <button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem">+ Alimento</button>
+      `;
+      optEl.querySelector('[data-role=del-option]').addEventListener('click', () => {
+        if (meal.options.length === 1){ alert('Ogni pasto deve avere almeno un\\'opzione.'); return; }
+        meal.options.splice(oi,1); schedulePersistPlanDay(currentPlanDay); renderPlan();
+      });
+      optEl.querySelector('[data-role=add-item]').addEventListener('click', () => {
+        opt.items.push({ id: uid(), name: '', qty: '' }); schedulePersistPlanDay(currentPlanDay); renderPlan();
+      });
+
+      const itemsEl = optEl.querySelector('.items');
+      opt.items.forEach((item, ii) => {
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+          <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
+          <input type="text" placeholder="Grammi" value="${escapeAttr(item.qty)}" data-role="item-qty">
+          <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
+        `;
+        row.querySelector('[data-role=item-name]').addEventListener('input', e => { item.name = e.target.value; schedulePersistPlanDay(currentPlanDay); });
+        row.querySelector('[data-role=item-qty]').addEventListener('input', e => { item.qty = e.target.value; schedulePersistPlanDay(currentPlanDay); });
+        row.querySelector('[data-role=del-item]').addEventListener('click', () => { opt.items.splice(ii,1); schedulePersistPlanDay(currentPlanDay); renderPlan(); });
+        itemsEl.appendChild(row);
+      });
+
+      optionsEl.appendChild(optEl);
+    });
+
+    container.appendChild(mealEl);
+  });
+}
+
+function escapeAttr(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+/* ---------------------------- Render: Oggi ---------------------------- */
+
+function renderToday(){
+  const date = currentTodayDate;
+  const dateStr = isoDate(date);
+  const day = dateToDay(date);
+  const dayPlan = plan[day];
+
+  el('today-label').textContent = dayLabel(day);
+  el('today-date').textContent = fmtDate(date);
+
+  if (!logsCache[dateStr]) logsCache[dateStr] = {};
+  const log = logsCache[dateStr];
+
+  const container = el('today-meals');
+  container.innerHTML = '';
+  dayPlan.meals.forEach(meal => {
+    const entry = log[meal.id] || { optionId: meal.options[0]?.id, done: false, doneAt: null };
+    log[meal.id] = entry;
+
+    const block = document.createElement('div');
+    block.className = 'meal-block';
+    block.innerHTML = `
+      <div class="head">
+        <strong>${escapeAttr(meal.name)}</strong>
+        <label class="row" style="gap:6px;cursor:pointer">
+          <div class="check ${entry.done ? 'done' : ''}" data-role="toggle-done">${entry.done ? '✓' : ''}</div>
+          <span class="muted">Fatto</span>
+        </label>
+      </div>
+      <div class="choices"></div>
+    `;
+    block.querySelector('[data-role=toggle-done]').addEventListener('click', () => {
+      entry.done = !entry.done;
+      entry.doneAt = entry.done ? new Date().toISOString() : null;
+      scheduleSaveLog(dateStr);
+      renderToday();
+    });
+
+    const choicesEl = block.querySelector('.choices');
+    meal.options.forEach((opt, oi) => {
+      const choice = document.createElement('div');
+      choice.className = 'option-choice' + (entry.optionId === opt.id ? ' selected' : '');
+      const itemsText = opt.items.map(it => `${it.name} ${it.qty ? '('+it.qty+')' : ''}`.trim()).join(', ') || 'Nessun alimento specificato';
+      choice.innerHTML = `
+        <div class="check ${entry.optionId===opt.id?'done':''}">${entry.optionId===opt.id?'●':''}</div>
+        <div>
+          <div>Opzione ${oi+1}</div>
+          <div class="items">${escapeAttr(itemsText)}</div>
+        </div>
+      `;
+      choice.addEventListener('click', () => {
+        entry.optionId = opt.id;
+        scheduleSaveLog(dateStr);
+        renderToday();
+      });
+      choicesEl.appendChild(choice);
+    });
+
+    container.appendChild(block);
+  });
+}
+
+/* ---------------------------- Render: Storico ---------------------------- */
+
+function renderStorico(){
+  if (currentStorico === 'andamento') renderAndamento();
+  else renderVersions();
+}
+
+function renderAndamento(){
+  const list = el('andamento-list');
+  const days = [];
+  for (let i = 13; i >= 0; i--){
+    const d = new Date();
+    d.setDate(d.getDate()-i);
+    const dateStr = isoDate(d);
+    const dayId = dateToDay(d);
+    const dayPlan = plan[dayId];
+    const log = logsCache[dateStr] || {};
+    const planned = dayPlan.meals.length;
+    const done = dayPlan.meals.filter(m => log[m.id]?.done).length;
+    days.push({ dateStr, d, planned, done });
+  }
+  list.innerHTML = days.map(({d, dateStr, planned, done}) => {
+    const pct = planned ? Math.round(done/planned*100) : 0;
+    return `
+      <div class="history-day">
+        <div>
+          <div>${d.toLocaleDateString('it-IT', {weekday:'short', day:'numeric', month:'short'})}</div>
+          <div class="bar-bg" style="width:140px;margin-top:4px"><div class="bar-fill" style="width:${pct}%"></div></div>
+        </div>
+        <span class="muted">${done}/${planned}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderVersions(){
+  const list = el('versions-list');
+  if (!versionsCache.length){
+    list.innerHTML = `<p class="muted">Nessuna versione salvata. Usa "Archivia piano" nella tab Piano.</p>`;
+    el('version-detail').innerHTML = '';
+    return;
+  }
+  list.innerHTML = versionsCache.map(v => `
+    <div class="version-item">
+      <div>
+        <div>${escapeAttr(v.label || 'Senza nome')}</div>
+        <div class="muted">${new Date(v.saved_at).toLocaleString('it-IT')}</div>
+      </div>
+      <button class="secondary" data-role="view-version" data-id="${v.id}" style="padding:6px 10px;font-size:.85rem">Apri</button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-role=view-version]').forEach(btn => {
+    btn.addEventListener('click', () => renderVersionDetail(btn.dataset.id));
+  });
+}
+
+let versionDetailDay = 'mon';
+function renderVersionDetail(versionId){
+  const v = versionsCache.find(x => x.id === versionId);
+  if (!v) return;
+  versionDetailDay = 'mon';
+  const detail = el('version-detail');
+  function draw(){
+    const days = v.days || {};
+    const dayPlan = days[versionDetailDay] || { meals: [] };
+    detail.innerHTML = `
+      <div class="card">
+        <div class="row between">
+          <h2>${escapeAttr(v.label || 'Senza nome')}</h2>
+          <span class="muted">${new Date(v.saved_at).toLocaleDateString('it-IT')}</span>
+        </div>
+        <div class="day-tabs" id="vd-day-tabs"></div>
+        <div id="vd-meals"></div>
+      </div>
+    `;
+    detail.querySelector('#vd-day-tabs').innerHTML = DAYS.map(d => `<button data-day="${d.id}" class="${d.id===versionDetailDay?'active':''}">${d.label.slice(0,3)}</button>`).join('');
+    detail.querySelector('#vd-day-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-day]');
+      if (!btn) return;
+      versionDetailDay = btn.dataset.day;
+      draw();
+    });
+    detail.querySelector('#vd-meals').innerHTML = (dayPlan.meals||[]).map(meal => `
+      <div class="meal">
+        <div class="meal-title"><strong>${escapeAttr(meal.name)}</strong></div>
+        ${meal.options.map((opt,oi) => `
+          <div class="option">
+            <span class="badge">Opzione ${oi+1}</span>
+            <div class="items" style="margin-top:6px">${escapeAttr(opt.items.map(it=>`${it.name} ${it.qty?'('+it.qty+')':''}`.trim()).join(', ') || 'Nessun alimento')}</div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('') || '<p class="muted">Nessun pasto per questo giorno.</p>';
+  }
+  draw();
+}
+
+init();
+</script>
+</body>
+</html>

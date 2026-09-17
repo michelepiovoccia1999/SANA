@@ -58,9 +58,29 @@ python3 -m http.server 5173
 
 Apri `http://localhost:5173`. Se il backend gira su un URL diverso da `http://localhost:3001`, aggiorna `frontend/js/config.js` (`SANA_API_BASE`).
 
-## Deploy
+## Deploy su Vercel
 
-- **Backend**: va ospitato su una piattaforma che tiene un processo Node sempre attivo (Render, Railway, Fly.io, ecc. — non Vercel statico). Imposta le stesse variabili di `.env` come environment variables della piattaforma.
-- **Frontend**: essendo statico, va bene Vercel/Netlify/GitHub Pages puntando alla cartella `frontend/`. Aggiorna `frontend/js/config.js` con l'URL pubblico del backend deployato.
+Backend e frontend sono due progetti Vercel separati, entrambi puntati sullo stesso repo ma con **Root Directory** diversa.
+
+### Backend
+
+1. Su Vercel: **New Project** → importa il repo → **Root Directory** = `backend`.
+2. Vercel lo riconosce come progetto Node grazie a `backend/vercel.json` e `backend/api/index.js` (adattano l'app Express a funzione serverless — non usa `app.listen()` in produzione).
+3. In **Settings → Environment Variables** di questo progetto imposta:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `JWT_SECRET`
+   (`PORT` non serve, lo gestisce Vercel). Sono gli stessi valori che hai in `backend/.env` in locale.
+4. Deploy. L'URL pubblico sarà tipo `https://sana-backend.vercel.app`.
+
+### Frontend
+
+1. Un secondo progetto Vercel → **Root Directory** = `frontend`.
+2. Nessuna variabile d'ambiente necessaria: l'URL del backend non è un segreto, va scritto direttamente in `frontend/js/config.js` (`SANA_API_BASE`) **prima del deploy**, sostituendo `http://localhost:3001` con l'URL del backend deployato al punto precedente.
+3. Deploy.
+
+### In alternativa al backend su Vercel
+
+Se preferisci non usare funzioni serverless, il backend è un Express "normale" (`backend/src/server.js` con `app.listen()`) e gira senza modifiche su qualunque hosting con un processo Node sempre attivo (Render, Railway, Fly.io...), impostando le stesse variabili d'ambiente.
 
 Vedi [docs/SANA-README.md](docs/SANA-README.md) per la descrizione funzionale completa.

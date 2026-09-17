@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SANA — piano alimentare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="card">
+    <h1>SANA</h1>
+    <p class="muted" id="login-subtitle">Accedi con username e password</p>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="login-username" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+    </div>
+    <div id="login-error" class="error hidden"></div>
+    <div class="row" style="margin-top:16px">
+      <button id="login-submit" style="flex:1">Accedi</button>
+    </div>
+    <p class="muted" style="margin-top:14px;text-align:center">
+      <span id="toggle-mode-text">Non hai un account?</span>
+      <a class="linklike" id="toggle-mode">Registrati</a>
+    </p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="top-bar">
+    <div>
+      <h1>SANA</h1>
+      <span class="muted" id="whoami"></span>
+    </div>
+    <button class="ghost" id="logout-btn">Esci</button>
+  </div>
+
+  <nav class="tabs">
+    <button data-tab="piano" class="active">Piano</button>
+    <button data-tab="oggi">Oggi</button>
+    <button data-tab="storico">Storico</button>
+  </nav>
+
+  <section id="tab-piano">
+    <div class="day-tabs" id="plan-day-tabs"></div>
+    <div class="row between" style="margin-bottom:12px">
+      <div class="row">
+        <select id="copy-target"></select>
+        <button class="secondary" id="copy-day-btn">Copia su</button>
+      </div>
+      <button id="archive-plan-btn">Archivia piano</button>
+    </div>
+    <div id="plan-meals"></div>
+    <button class="secondary" id="add-meal-btn">+ Aggiungi pasto</button>
+  </section>
+
+  <section id="tab-oggi" class="hidden">
+    <div class="today-header">
+      <button class="ghost" id="prev-day">‹</button>
+      <div style="text-align:center">
+        <div id="today-label" style="font-weight:600"></div>
+        <div class="muted" id="today-date"></div>
+      </div>
+      <button class="ghost" id="next-day">›</button>
+    </div>
+    <div id="today-meals"></div>
+  </section>
+
+  <section id="tab-storico" class="hidden">
+    <div class="storico-tabs">
+      <button data-storico="andamento" class="active">Andamento</button>
+      <button data-storico="versioni">Piani salvati</button>
+    </div>
+    <div id="storico-andamento">
+      <div class="card" id="andamento-list"></div>
+    </div>
+    <div id="storico-versioni" class="hidden">
+      <div class="card" id="versions-list"></div>
+      <div id="version-detail"></div>
+    </div>
+  </section>
+</div>
+
+<script src="js/config.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

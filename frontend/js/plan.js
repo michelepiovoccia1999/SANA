@@ -137,7 +137,7 @@ export function renderPlan() {
       row.className = "item-row";
       row.innerHTML = `
         <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
-        <input type="text" placeholder="Grammi" value="${escapeAttr(item.qty)}" data-role="item-qty">
+        <input type="text" placeholder="Inserisci" value="${escapeAttr(item.qty)}" data-role="item-qty">
         <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
       `;
       row.querySelector("[data-role=item-name]").addEventListener("input", e => { item.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });

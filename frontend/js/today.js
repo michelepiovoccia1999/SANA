@@ -17,13 +17,6 @@ async function persistLog(date) {
   }
 }
 
-function shortSummary(opt) {
-  const names = opt.items.map(it => it.name).filter(Boolean);
-  if (!names.length) return "Nessun alimento";
-  if (names.length === 1) return names[0];
-  return `${names[0]} +${names.length - 1}`;
-}
-
 export function initToday() {
   el("prev-day").addEventListener("click", () => { state.currentTodayDate.setDate(state.currentTodayDate.getDate() - 1); renderToday(); });
   el("next-day").addEventListener("click", () => { state.currentTodayDate.setDate(state.currentTodayDate.getDate() + 1); renderToday(); });
@@ -44,48 +37,43 @@ export function renderToday() {
   const container = el("today-meals");
   container.innerHTML = "";
   dayPlan.meals.forEach(meal => {
-    const entry = log[meal.id] || { optionId: meal.options[0]?.id, done: false, doneAt: null };
+    const entry = log[meal.id] || { optionId: meal.options[0]?.id };
     log[meal.id] = entry;
 
     const block = document.createElement("div");
     block.className = "meal-block";
     block.innerHTML = `
-      <div class="head">
-        <strong>${escapeAttr(meal.name)}</strong>
-        <label class="row" style="gap:6px;cursor:pointer">
-          <div class="check ${entry.done ? "done" : ""}" data-role="toggle-done">${entry.done ? "✓" : ""}</div>
-          <span class="muted">Fatto</span>
-        </label>
-      </div>
-      <div class="choices"></div>
+      <div class="head"><strong>${escapeAttr(meal.name)}</strong></div>
+      <div class="pill-row" data-role="pills"></div>
+      <div class="items"></div>
     `;
-    block.querySelector("[data-role=toggle-done]").addEventListener("click", () => {
-      entry.done = !entry.done;
-      entry.doneAt = entry.done ? new Date().toISOString() : null;
-      scheduleSaveLog(dateStr);
-      renderToday();
-    });
 
-    const choicesEl = block.querySelector(".choices");
+    const pillsEl = block.querySelector("[data-role=pills]");
     meal.options.forEach((opt, oi) => {
-      const isSelected = entry.optionId === opt.id;
-      const choice = document.createElement("div");
-      choice.className = "option-choice" + (isSelected ? " selected" : "");
-      const itemsText = opt.items.map(it => `${it.name} ${it.qty ? "(" + it.qty + ")" : ""}`.trim()).join(", ") || "Nessun alimento specificato";
-      choice.innerHTML = `
-        <div class="check ${isSelected ? "done" : ""}">${isSelected ? "●" : ""}</div>
-        <div style="flex:1">
-          <div>Opzione ${oi + 1}${isSelected ? "" : ` <span class="muted">— ${escapeAttr(shortSummary(opt))}</span>`}</div>
-          ${isSelected ? `<div class="items">${escapeAttr(itemsText)}</div>` : ""}
-        </div>
-      `;
-      choice.addEventListener("click", () => {
+      const pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = "pill" + (opt.id === entry.optionId ? " active" : "");
+      pill.textContent = String(oi + 1);
+      pill.addEventListener("click", () => {
         entry.optionId = opt.id;
         scheduleSaveLog(dateStr);
         renderToday();
       });
-      choicesEl.appendChild(choice);
+      pillsEl.appendChild(pill);
     });
+
+    const selectedOption = meal.options.find(o => o.id === entry.optionId) || meal.options[0];
+    const itemsEl = block.querySelector(".items");
+    if (selectedOption && selectedOption.items.length) {
+      selectedOption.items.forEach(it => {
+        const line = document.createElement("div");
+        line.className = "item-line";
+        line.textContent = `• ${it.name}${it.qty ? " — " + it.qty : ""}`;
+        itemsEl.appendChild(line);
+      });
+    } else {
+      itemsEl.innerHTML = `<div class="item-line muted">Nessun alimento specificato</div>`;
+    }
 
     container.appendChild(block);
   });

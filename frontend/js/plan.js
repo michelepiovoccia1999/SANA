@@ -1,10 +1,11 @@
 import { api } from "./api.js";
 import { state } from "./state.js";
 import { DAYS, uid, dayLabel, escapeAttr } from "./utils.js";
+import { confirmDialog, alertDialog, promptDialog } from "./dialog.js";
 
 function el(id) { return document.getElementById(id); }
 
-const openOptionIds = new Set();
+const activeOptionByMeal = new Map();
 
 function schedulePersistPlanDay(day) {
   clearTimeout(state.saveTimers["plan_" + day]);
@@ -17,11 +18,6 @@ async function persistPlanDay(day) {
   } catch (e) {
     console.error("Errore salvataggio piano:", e.message);
   }
-}
-
-function summarizeOption(opt) {
-  const text = opt.items.map(it => it.name).filter(Boolean).join(", ");
-  return text || "Nessun alimento";
 }
 
 export function initPlan() {
@@ -51,21 +47,21 @@ export function initPlan() {
         label: dayLabel(target),
         meals: JSON.parse(JSON.stringify(state.plan[state.currentPlanDay].meals)),
       };
-      alert(`Piano copiato su ${dayLabel(target)}`);
+      await alertDialog(`Piano copiato su ${dayLabel(target)}`);
     } catch (e) {
-      alert("Errore nella copia: " + e.message);
+      await alertDialog("Errore nella copia: " + e.message);
     }
   });
 
   el("archive-plan-btn").addEventListener("click", async () => {
-    const label = prompt('Nome per questa versione del piano (es. "Dieta settembre"):', new Date().toLocaleDateString("it-IT"));
+    const label = await promptDialog('Nome per questa versione del piano (es. "Dieta settembre"):', new Date().toLocaleDateString("it-IT"));
     if (label === null) return;
     try {
       const version = await api.saveVersion(label, JSON.parse(JSON.stringify(state.plan)));
       state.versionsCache.unshift(version);
-      alert("Piano archiviato.");
+      await alertDialog("Piano archiviato.");
     } catch (e) {
-      alert("Errore nell'archiviazione: " + e.message);
+      await alertDialog("Errore nell'archiviazione: " + e.message);
     }
   });
 }
@@ -84,75 +80,87 @@ export function renderPlan() {
         <input type="text" value="${escapeAttr(meal.name)}" data-role="meal-name">
         <button class="ghost" data-role="del-meal">✕</button>
       </div>
-      <div class="options"></div>
-      <button class="secondary" data-role="add-option" style="padding:6px 10px;font-size:.85rem">+ Alternativa</button>
+      <div class="pill-row" data-role="pills"></div>
+      <div class="option-panel" data-role="panel"></div>
     `;
     mealEl.querySelector("[data-role=meal-name]").addEventListener("input", e => {
       meal.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay);
     });
-    mealEl.querySelector("[data-role=del-meal]").addEventListener("click", () => {
-      if (!confirm("Eliminare questo pasto?")) return;
+    mealEl.querySelector("[data-role=del-meal]").addEventListener("click", async () => {
+      const ok = await confirmDialog("Eliminare questo pasto?", { confirmText: "Elimina", danger: true });
+      if (!ok) return;
       meals.splice(mi, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
     });
-    mealEl.querySelector("[data-role=add-option]").addEventListener("click", () => {
+
+    if (!activeOptionByMeal.has(meal.id)) activeOptionByMeal.set(meal.id, 0);
+    let activeIdx = Math.min(activeOptionByMeal.get(meal.id), meal.options.length - 1);
+    activeOptionByMeal.set(meal.id, activeIdx);
+
+    const pillsEl = mealEl.querySelector("[data-role=pills]");
+    meal.options.forEach((opt, oi) => {
+      const pill = document.createElement("button");
+      pill.type = "button";
+      pill.className = "pill" + (oi === activeIdx ? " active" : "");
+      pill.textContent = String(oi + 1);
+      pill.addEventListener("click", () => {
+        activeOptionByMeal.set(meal.id, oi);
+        renderPlan();
+      });
+      pillsEl.appendChild(pill);
+    });
+    const addPill = document.createElement("button");
+    addPill.type = "button";
+    addPill.className = "pill-add";
+    addPill.textContent = "+";
+    addPill.title = "Aggiungi alternativa";
+    addPill.addEventListener("click", () => {
       const newOpt = { id: uid(), items: [] };
       meal.options.push(newOpt);
-      openOptionIds.add(newOpt.id);
+      activeOptionByMeal.set(meal.id, meal.options.length - 1);
+      schedulePersistPlanDay(state.currentPlanDay);
+      renderPlan();
+    });
+    pillsEl.appendChild(addPill);
+
+    const activeOpt = meal.options[activeIdx];
+    const panelEl = mealEl.querySelector("[data-role=panel]");
+    panelEl.innerHTML = `<div class="items"></div><button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem;margin-top:4px">+ Alimento</button>`;
+    panelEl.querySelector("[data-role=add-item]").addEventListener("click", () => {
+      activeOpt.items.push({ id: uid(), name: "", qty: "" });
       schedulePersistPlanDay(state.currentPlanDay);
       renderPlan();
     });
 
-    const optionsEl = mealEl.querySelector(".options");
-    meal.options.forEach((opt, oi) => {
-      const isOpen = openOptionIds.has(opt.id);
-      const optEl = document.createElement("div");
-      optEl.className = "option";
-      optEl.innerHTML = `
-        <div class="option-header" data-role="toggle-option" style="cursor:pointer">
-          <span>
-            <span style="display:inline-block;width:1em">${isOpen ? "▾" : "▸"}</span>
-            <span class="badge">Opzione ${oi + 1}</span>
-            ${isOpen ? "" : `<span class="muted" style="margin-left:6px">${escapeAttr(summarizeOption(opt))}</span>`}
-          </span>
-          <button class="ghost" data-role="del-option" style="padding:2px 8px">✕</button>
-        </div>
-        <div class="option-body ${isOpen ? "" : "hidden"}">
-          <div class="items"></div>
-          <button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem">+ Alimento</button>
-        </div>
+    const itemsEl = panelEl.querySelector(".items");
+    activeOpt.items.forEach((item, ii) => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      row.innerHTML = `
+        <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
+        <input type="text" placeholder="Grammi" value="${escapeAttr(item.qty)}" data-role="item-qty">
+        <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
       `;
-      optEl.querySelector("[data-role=toggle-option]").addEventListener("click", (e) => {
-        if (e.target.closest("[data-role=del-option]")) return;
-        if (isOpen) openOptionIds.delete(opt.id); else openOptionIds.add(opt.id);
+      row.querySelector("[data-role=item-name]").addEventListener("input", e => { item.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
+      row.querySelector("[data-role=item-qty]").addEventListener("input", e => { item.qty = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
+      row.querySelector("[data-role=del-item]").addEventListener("click", () => { activeOpt.items.splice(ii, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan(); });
+      itemsEl.appendChild(row);
+    });
+
+    if (meal.options.length > 1) {
+      const delOptLink = document.createElement("div");
+      delOptLink.className = "muted";
+      delOptLink.style.cssText = "margin-top:8px;cursor:pointer;color:var(--danger);font-size:.8rem";
+      delOptLink.textContent = "Elimina questa opzione";
+      delOptLink.addEventListener("click", async () => {
+        const ok = await confirmDialog(`Eliminare l'opzione ${activeIdx + 1}?`, { confirmText: "Elimina", danger: true });
+        if (!ok) return;
+        meal.options.splice(activeIdx, 1);
+        activeOptionByMeal.set(meal.id, Math.max(0, activeIdx - 1));
+        schedulePersistPlanDay(state.currentPlanDay);
         renderPlan();
       });
-      optEl.querySelector("[data-role=del-option]").addEventListener("click", () => {
-        if (meal.options.length === 1) { alert("Ogni pasto deve avere almeno un'opzione."); return; }
-        meal.options.splice(oi, 1); openOptionIds.delete(opt.id); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
-      });
-      optEl.querySelector("[data-role=add-item]")?.addEventListener("click", () => {
-        opt.items.push({ id: uid(), name: "", qty: "" }); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
-      });
-
-      const itemsEl = optEl.querySelector(".items");
-      if (itemsEl) {
-        opt.items.forEach((item, ii) => {
-          const row = document.createElement("div");
-          row.className = "item-row";
-          row.innerHTML = `
-            <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
-            <input type="text" placeholder="Grammi" value="${escapeAttr(item.qty)}" data-role="item-qty">
-            <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
-          `;
-          row.querySelector("[data-role=item-name]").addEventListener("input", e => { item.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
-          row.querySelector("[data-role=item-qty]").addEventListener("input", e => { item.qty = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
-          row.querySelector("[data-role=del-item]").addEventListener("click", () => { opt.items.splice(ii, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan(); });
-          itemsEl.appendChild(row);
-        });
-      }
-
-      optionsEl.appendChild(optEl);
-    });
+      panelEl.appendChild(delOptLink);
+    }
 
     container.appendChild(mealEl);
   });

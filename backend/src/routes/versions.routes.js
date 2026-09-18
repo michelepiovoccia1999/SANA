@@ -24,4 +24,14 @@ router.post("/", async (req, res) => {
   res.json(data);
 });
 
+router.delete("/:id", async (req, res) => {
+  const { error } = await supabase
+    .from("plan_versions")
+    .delete()
+    .eq("id", req.params.id)
+    .eq("user_id", req.userId);
+  if (error) return res.status(500).json({ error: "Errore nell'eliminazione della versione" });
+  res.json({ ok: true });
+});
+
 export default router;

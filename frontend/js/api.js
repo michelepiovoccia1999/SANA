@@ -51,4 +51,5 @@ export const api = {
 
   getVersions: () => request("/api/versions"),
   saveVersion: (label, days) => request("/api/versions", { method: "POST", body: { label, days } }),
+  deleteVersion: (id) => request(`/api/versions/${id}`, { method: "DELETE" }),
 };

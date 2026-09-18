@@ -5,6 +5,7 @@ import { initAuth, showLogin, showApp } from "./auth.js";
 import { initPlan, renderPlan } from "./plan.js";
 import { initToday, renderToday } from "./today.js";
 import { initStorico, renderStorico } from "./storico.js";
+import { initTheme } from "./theme.js";
 
 function el(id) { return document.getElementById(id); }
 
@@ -55,6 +56,7 @@ function onLogout() {
 }
 
 async function init() {
+  initTheme();
   bindTabs();
   initPlan();
   initToday();

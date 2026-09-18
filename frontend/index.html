@@ -7,6 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<script>
+  try {
+    const saved = localStorage.getItem("sana_theme");
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+  } catch {}
+</script>
 </head>
 <body>
 
@@ -32,7 +38,13 @@
       <h1>SANA</h1>
       <span class="muted" id="whoami"></span>
     </div>
-    <button class="ghost" id="logout-btn">Esci</button>
+    <div class="top-bar-actions">
+      <label class="theme-switch">
+        <input type="checkbox" id="theme-toggle">
+        <span class="slider"></span>
+      </label>
+      <button class="ghost" id="logout-btn">Esci</button>
+    </div>
   </div>
 
   <nav class="tabs">

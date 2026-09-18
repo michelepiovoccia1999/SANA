@@ -1,5 +1,7 @@
+import { api } from "./api.js";
 import { state } from "./state.js";
 import { DAYS, dateToDay, isoDate, escapeAttr } from "./utils.js";
+import { confirmDialog, alertDialog } from "./dialog.js";
 
 function el(id) { return document.getElementById(id); }
 
@@ -61,11 +63,29 @@ function renderVersions() {
         <div>${escapeAttr(v.label || "Senza nome")}</div>
         <div class="muted">${new Date(v.saved_at).toLocaleString("it-IT")}</div>
       </div>
-      <button class="secondary" data-role="view-version" data-id="${v.id}" style="padding:6px 10px;font-size:.85rem">Apri</button>
+      <div class="row">
+        <button class="secondary" data-role="view-version" data-id="${v.id}" style="padding:6px 10px;font-size:.85rem">Apri</button>
+        <button class="danger" data-role="delete-version" data-id="${v.id}" style="padding:6px 10px;font-size:.85rem">Elimina</button>
+      </div>
     </div>
   `).join("");
   list.querySelectorAll("[data-role=view-version]").forEach(btn => {
     btn.addEventListener("click", () => renderVersionDetail(btn.dataset.id));
+  });
+  list.querySelectorAll("[data-role=delete-version]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const v = state.versionsCache.find(x => x.id === btn.dataset.id);
+      const ok = await confirmDialog(`Eliminare la versione "${escapeAttr(v?.label || "Senza nome")}"? L'operazione non è reversibile.`, { confirmText: "Elimina", danger: true });
+      if (!ok) return;
+      try {
+        await api.deleteVersion(btn.dataset.id);
+        state.versionsCache = state.versionsCache.filter(x => x.id !== btn.dataset.id);
+        el("version-detail").innerHTML = "";
+        renderVersions();
+      } catch (e) {
+        await alertDialog("Errore nell'eliminazione: " + e.message);
+      }
+    });
   });
 }
 

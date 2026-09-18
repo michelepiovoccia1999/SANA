@@ -35,8 +35,7 @@ async function request(path, { method = "GET", body } = {}) {
 }
 
 export const api = {
-  register: (username, password) => request("/api/auth/register", { method: "POST", body: { username, password } }),
-  login: (username, password) => request("/api/auth/login", { method: "POST", body: { username, password } }),
+  login: (username) => request("/api/auth/login", { method: "POST", body: { username } }),
 
   getPlan: () => request("/api/plan"),
   savePlanDay: (day, label, meals) => request(`/api/plan/${day}`, { method: "PUT", body: { label, meals } }),

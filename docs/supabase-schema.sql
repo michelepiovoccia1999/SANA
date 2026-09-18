@@ -3,18 +3,17 @@
 --
 -- Architettura: il backend Node/Express (cartella /backend) è l'unico
 -- client che parla con Supabase, usando la service role key (che bypassa
--- sempre la Row Level Security). L'autenticazione (username + password)
--- è gestita interamente dal backend con una tabella "users" propria e
--- password hash (bcrypt) + JWT — non si usa Supabase Auth.
--- RLS è comunque abilitata senza policy, così anon/authenticated (se mai
--- usate) non hanno accesso di default: solo la service role key può leggere/scrivere.
+-- sempre la Row Level Security). L'autenticazione è solo username (senza
+-- password, per uso personale/privato): al primo accesso l'utente viene
+-- creato al volo. RLS è comunque abilitata senza policy, così anon/authenticated
+-- (se mai usate) non hanno accesso di default: solo la service role key può
+-- leggere/scrivere.
 
 create extension if not exists "pgcrypto";
 
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   username text unique not null,
-  password_hash text not null,
   created_at timestamptz not null default now()
 );
 

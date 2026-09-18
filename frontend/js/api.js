@@ -1,4 +1,4 @@
-const API_BASE = window.SANA_API_BASE || "http://localhost:3001";
+const API_BASE = window.SANA_API_BASE ?? "http://localhost:3001";
 const TOKEN_KEY = "sana_token";
 const USERNAME_KEY = "sana_username";
 

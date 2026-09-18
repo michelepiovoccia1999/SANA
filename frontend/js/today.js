@@ -17,6 +17,13 @@ async function persistLog(date) {
   }
 }
 
+function shortSummary(opt) {
+  const names = opt.items.map(it => it.name).filter(Boolean);
+  if (!names.length) return "Nessun alimento";
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1}`;
+}
+
 export function initToday() {
   el("prev-day").addEventListener("click", () => { state.currentTodayDate.setDate(state.currentTodayDate.getDate() - 1); renderToday(); });
   el("next-day").addEventListener("click", () => { state.currentTodayDate.setDate(state.currentTodayDate.getDate() + 1); renderToday(); });
@@ -61,14 +68,15 @@ export function renderToday() {
 
     const choicesEl = block.querySelector(".choices");
     meal.options.forEach((opt, oi) => {
+      const isSelected = entry.optionId === opt.id;
       const choice = document.createElement("div");
-      choice.className = "option-choice" + (entry.optionId === opt.id ? " selected" : "");
+      choice.className = "option-choice" + (isSelected ? " selected" : "");
       const itemsText = opt.items.map(it => `${it.name} ${it.qty ? "(" + it.qty + ")" : ""}`.trim()).join(", ") || "Nessun alimento specificato";
       choice.innerHTML = `
-        <div class="check ${entry.optionId === opt.id ? "done" : ""}">${entry.optionId === opt.id ? "●" : ""}</div>
-        <div>
-          <div>Opzione ${oi + 1}</div>
-          <div class="items">${escapeAttr(itemsText)}</div>
+        <div class="check ${isSelected ? "done" : ""}">${isSelected ? "●" : ""}</div>
+        <div style="flex:1">
+          <div>Opzione ${oi + 1}${isSelected ? "" : ` <span class="muted">— ${escapeAttr(shortSummary(opt))}</span>`}</div>
+          ${isSelected ? `<div class="items">${escapeAttr(itemsText)}</div>` : ""}
         </div>
       `;
       choice.addEventListener("click", () => {

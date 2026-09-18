@@ -4,6 +4,8 @@ import { DAYS, uid, dayLabel, escapeAttr } from "./utils.js";
 
 function el(id) { return document.getElementById(id); }
 
+const openOptionIds = new Set();
+
 function schedulePersistPlanDay(day) {
   clearTimeout(state.saveTimers["plan_" + day]);
   state.saveTimers["plan_" + day] = setTimeout(() => persistPlanDay(day), 500);
@@ -15,6 +17,11 @@ async function persistPlanDay(day) {
   } catch (e) {
     console.error("Errore salvataggio piano:", e.message);
   }
+}
+
+function summarizeOption(opt) {
+  const text = opt.items.map(it => it.name).filter(Boolean).join(", ");
+  return text || "Nessun alimento";
 }
 
 export function initPlan() {
@@ -88,43 +95,61 @@ export function renderPlan() {
       meals.splice(mi, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
     });
     mealEl.querySelector("[data-role=add-option]").addEventListener("click", () => {
-      meal.options.push({ id: uid(), items: [] }); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
+      const newOpt = { id: uid(), items: [] };
+      meal.options.push(newOpt);
+      openOptionIds.add(newOpt.id);
+      schedulePersistPlanDay(state.currentPlanDay);
+      renderPlan();
     });
 
     const optionsEl = mealEl.querySelector(".options");
     meal.options.forEach((opt, oi) => {
+      const isOpen = openOptionIds.has(opt.id);
       const optEl = document.createElement("div");
       optEl.className = "option";
       optEl.innerHTML = `
-        <div class="option-header">
-          <span class="badge">Opzione ${oi + 1}</span>
+        <div class="option-header" data-role="toggle-option" style="cursor:pointer">
+          <span>
+            <span style="display:inline-block;width:1em">${isOpen ? "▾" : "▸"}</span>
+            <span class="badge">Opzione ${oi + 1}</span>
+            ${isOpen ? "" : `<span class="muted" style="margin-left:6px">${escapeAttr(summarizeOption(opt))}</span>`}
+          </span>
           <button class="ghost" data-role="del-option" style="padding:2px 8px">✕</button>
         </div>
-        <div class="items"></div>
-        <button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem">+ Alimento</button>
+        <div class="option-body ${isOpen ? "" : "hidden"}">
+          <div class="items"></div>
+          <button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem">+ Alimento</button>
+        </div>
       `;
+      optEl.querySelector("[data-role=toggle-option]").addEventListener("click", (e) => {
+        if (e.target.closest("[data-role=del-option]")) return;
+        if (isOpen) openOptionIds.delete(opt.id); else openOptionIds.add(opt.id);
+        renderPlan();
+      });
       optEl.querySelector("[data-role=del-option]").addEventListener("click", () => {
         if (meal.options.length === 1) { alert("Ogni pasto deve avere almeno un'opzione."); return; }
-        meal.options.splice(oi, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
+        meal.options.splice(oi, 1); openOptionIds.delete(opt.id); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
       });
-      optEl.querySelector("[data-role=add-item]").addEventListener("click", () => {
+      optEl.querySelector("[data-role=add-item]")?.addEventListener("click", () => {
         opt.items.push({ id: uid(), name: "", qty: "" }); schedulePersistPlanDay(state.currentPlanDay); renderPlan();
       });
 
       const itemsEl = optEl.querySelector(".items");
-      opt.items.forEach((item, ii) => {
-        const row = document.createElement("div");
-        row.className = "item-row";
-        row.innerHTML = `
-          <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
-          <input type="text" placeholder="Grammi" value="${escapeAttr(item.qty)}" data-role="item-qty">
-          <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
-        `;
-        row.querySelector("[data-role=item-name]").addEventListener("input", e => { item.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
-        row.querySelector("[data-role=item-qty]").addEventListener("input", e => { item.qty = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
-        row.querySelector("[data-role=del-item]").addEventListener("click", () => { opt.items.splice(ii, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan(); });
-        itemsEl.appendChild(row);
-      });
+      if (itemsEl) {
+        opt.items.forEach((item, ii) => {
+          const row = document.createElement("div");
+          row.className = "item-row";
+          row.innerHTML = `
+            <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
+            <input type="text" placeholder="Grammi" value="${escapeAttr(item.qty)}" data-role="item-qty">
+            <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
+          `;
+          row.querySelector("[data-role=item-name]").addEventListener("input", e => { item.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
+          row.querySelector("[data-role=item-qty]").addEventListener("input", e => { item.qty = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
+          row.querySelector("[data-role=del-item]").addEventListener("click", () => { opt.items.splice(ii, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan(); });
+          itemsEl.appendChild(row);
+        });
+      }
 
       optionsEl.appendChild(optEl);
     });

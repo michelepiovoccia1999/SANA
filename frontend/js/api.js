@@ -30,12 +30,17 @@ async function request(path, { method = "GET", body } = {}) {
   }
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Errore ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(data.error || `Errore ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return data;
 }
 
 export const api = {
   login: (username) => request("/api/auth/login", { method: "POST", body: { username } }),
+  register: (username) => request("/api/auth/register", { method: "POST", body: { username } }),
 
   getPlan: () => request("/api/plan"),
   savePlanDay: (day, label, meals) => request(`/api/plan/${day}`, { method: "PUT", body: { label, meals } }),

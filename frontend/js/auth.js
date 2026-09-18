@@ -3,15 +3,24 @@ import { api, setSession, clearSession } from "./api.js";
 function el(id) { return document.getElementById(id); }
 
 export function initAuth({ onLogin, onLogout }) {
+  const errBox = () => el("login-error");
+  const registerBtn = () => el("login-register");
+
+  function showError(msg) {
+    errBox().textContent = msg;
+    errBox().classList.remove("hidden");
+  }
+  function hideError() {
+    errBox().classList.add("hidden");
+    registerBtn().classList.add("hidden");
+  }
+
+  el("login-username").addEventListener("input", hideError);
+
   el("login-submit").addEventListener("click", async () => {
     const username = el("login-username").value.trim();
-    const errBox = el("login-error");
-    errBox.classList.add("hidden");
-    if (!username) {
-      errBox.textContent = "Inserisci uno username.";
-      errBox.classList.remove("hidden");
-      return;
-    }
+    hideError();
+    if (!username) { showError("Inserisci uno username."); return; }
 
     el("login-submit").disabled = true;
     try {
@@ -19,10 +28,31 @@ export function initAuth({ onLogin, onLogout }) {
       setSession(data.token, data.username);
       onLogin(data.username);
     } catch (e) {
-      errBox.textContent = e.message;
-      errBox.classList.remove("hidden");
+      if (e.status === 404) {
+        showError("Username non trovato.");
+        registerBtn().classList.remove("hidden");
+      } else {
+        showError(e.message);
+      }
     } finally {
       el("login-submit").disabled = false;
+    }
+  });
+
+  registerBtn().addEventListener("click", async () => {
+    const username = el("login-username").value.trim();
+    if (!username) return;
+
+    registerBtn().disabled = true;
+    try {
+      const data = await api.register(username);
+      setSession(data.token, data.username);
+      hideError();
+      onLogin(data.username);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      registerBtn().disabled = false;
     }
   });
 

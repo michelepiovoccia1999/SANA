@@ -49,3 +49,32 @@ alter table logs enable row level security;
 alter table plan_versions enable row level security;
 -- Nessuna policy definita: solo la service role key (usata dal backend) può
 -- leggere/scrivere queste tabelle.
+
+-- ---------------------------------------------------------------------------
+-- Sezione "Progressi": cartelle con foto/video.
+-- I file stanno in Supabase Storage (bucket privato "progress", creato in
+-- automatico dal backend al primo upload); qui solo i metadati.
+-- ---------------------------------------------------------------------------
+
+create table if not exists progress_folders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists progress_media (
+  id uuid primary key default gen_random_uuid(),
+  folder_id uuid not null references progress_folders(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  path text not null,
+  filename text not null default '',
+  type text not null check (type in ('image', 'video')),
+  size bigint not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists progress_media_folder_idx on progress_media(folder_id, created_at);
+
+alter table progress_folders enable row level security;
+alter table progress_media enable row level security;

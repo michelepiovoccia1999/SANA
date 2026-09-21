@@ -6,22 +6,26 @@ import { confirmDialog, alertDialog } from "./dialog.js";
 function el(id) { return document.getElementById(id); }
 
 export function initStorico() {
-  document.querySelectorAll(".storico-tabs button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.currentStorico = btn.dataset.storico;
-      document.querySelectorAll(".storico-tabs button").forEach(b => b.classList.toggle("active", b === btn));
-      el("storico-andamento").classList.toggle("hidden", state.currentStorico !== "andamento");
-      el("storico-versioni").classList.toggle("hidden", state.currentStorico !== "versioni");
-      renderStorico();
-    });
-  });
+  // ANDAMENTO (disattivato, riattivabile in futuro): con i tab Andamento / Piani salvati
+  // in index.html decommentati, riattivare questo blocco.
+  // document.querySelectorAll(".storico-tabs button").forEach(btn => {
+  //   btn.addEventListener("click", () => {
+  //     state.currentStorico = btn.dataset.storico;
+  //     document.querySelectorAll(".storico-tabs button").forEach(b => b.classList.toggle("active", b === btn));
+  //     el("storico-andamento").classList.toggle("hidden", state.currentStorico !== "andamento");
+  //     el("storico-versioni").classList.toggle("hidden", state.currentStorico !== "versioni");
+  //     renderStorico();
+  //   });
+  // });
 }
 
 export function renderStorico() {
-  if (state.currentStorico === "andamento") renderAndamento();
-  else renderVersions();
+  // if (state.currentStorico === "andamento") renderAndamento();
+  // else renderVersions();
+  renderVersions();
 }
 
+// Andamento: al momento non usato (vedi commento in index.html).
 function renderAndamento() {
   const list = el("andamento-list");
   const days = [];

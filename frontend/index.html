@@ -54,12 +54,13 @@
   </div>
 
   <nav class="tabs">
-    <button data-tab="piano" class="active">Piano</button>
-    <button data-tab="oggi">Oggi</button>
+    <button data-tab="piano">Piano</button>
+    <button data-tab="oggi" class="active">Oggi</button>
     <button data-tab="storico">Storico</button>
+    <button data-tab="progressi">Progressi</button>
   </nav>
 
-  <section id="tab-piano">
+  <section id="tab-piano" class="hidden">
     <div class="day-tabs" id="plan-day-tabs"></div>
     <div class="row between" style="margin-bottom:12px">
       <div class="row">
@@ -72,7 +73,7 @@
     <button class="secondary" id="add-meal-btn">+ Aggiungi pasto</button>
   </section>
 
-  <section id="tab-oggi" class="hidden">
+  <section id="tab-oggi">
     <div class="today-header">
       <button class="ghost" id="prev-day">‹</button>
       <div style="text-align:center">
@@ -85,6 +86,9 @@
   </section>
 
   <section id="tab-storico" class="hidden">
+    <!-- ANDAMENTO (disattivato, riattivabile in futuro):
+         decommentare questo blocco, rimettere class="hidden" su #storico-versioni
+         e riattivare la logica commentata in js/storico.js e il valore "andamento" in js/state.js
     <div class="storico-tabs">
       <button data-storico="andamento" class="active">Andamento</button>
       <button data-storico="versioni">Piani salvati</button>
@@ -92,10 +96,15 @@
     <div id="storico-andamento">
       <div class="card" id="andamento-list"></div>
     </div>
-    <div id="storico-versioni" class="hidden">
+    -->
+    <div id="storico-versioni">
       <div class="card" id="versions-list"></div>
       <div id="version-detail"></div>
     </div>
+  </section>
+
+  <section id="tab-progressi" class="hidden">
+    <div id="progress-root"></div>
   </section>
 </div>
 

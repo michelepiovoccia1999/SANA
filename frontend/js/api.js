@@ -52,4 +52,15 @@ export const api = {
   getVersions: () => request("/api/versions"),
   saveVersion: (label, days) => request("/api/versions", { method: "POST", body: { label, days } }),
   deleteVersion: (id) => request(`/api/versions/${id}`, { method: "DELETE" }),
+
+  listFolders: () => request("/api/progress/folders"),
+  createFolder: (name) => request("/api/progress/folders", { method: "POST", body: { name } }),
+  renameFolder: (id, name) => request(`/api/progress/folders/${id}`, { method: "PATCH", body: { name } }),
+  deleteFolder: (id) => request(`/api/progress/folders/${id}`, { method: "DELETE" }),
+  listMedia: (folderId) => request(`/api/progress/folders/${folderId}/media`),
+  getUploadUrl: (folderId, filename, contentType) =>
+    request(`/api/progress/folders/${folderId}/upload-url`, { method: "POST", body: { filename, contentType } }),
+  registerMedia: (folderId, payload) =>
+    request(`/api/progress/folders/${folderId}/media`, { method: "POST", body: payload }),
+  deleteMedia: (id) => request(`/api/progress/media/${id}`, { method: "DELETE" }),
 };

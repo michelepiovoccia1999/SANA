@@ -1,12 +1,12 @@
-import { emptyPlan } from "./utils.js";
+import { emptyPlan, dateToDay } from "./utils.js";
 
 export const state = {
   plan: emptyPlan(),
   logsCache: {},
   versionsCache: [],
-  currentPlanDay: "mon",
+  currentPlanDay: dateToDay(new Date()),
   currentTodayDate: new Date(),
-  currentTab: "piano",
-  currentStorico: "andamento",
+  currentTab: "oggi",
+  currentStorico: "versioni",
   saveTimers: {},
 };

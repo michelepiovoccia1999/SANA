@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes.js";
 import planRoutes from "./routes/plan.routes.js";
 import logsRoutes from "./routes/logs.routes.js";
 import versionsRoutes from "./routes/versions.routes.js";
+import progressRoutes from "./routes/progress.routes.js";
 import { requireAuth } from "./middleware/auth.js";
 
 if (!process.env.JWT_SECRET) {
@@ -20,3 +21,4 @@ app.use("/api/auth", authRoutes);
 app.use("/api/plan", requireAuth, planRoutes);
 app.use("/api/logs", requireAuth, logsRoutes);
 app.use("/api/versions", requireAuth, versionsRoutes);
+app.use("/api/progress", requireAuth, progressRoutes);

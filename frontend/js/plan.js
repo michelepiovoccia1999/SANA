@@ -100,8 +100,9 @@ export function renderPlan() {
     meal.options.forEach((opt, oi) => {
       const pill = document.createElement("button");
       pill.type = "button";
-      pill.className = "pill" + (oi === activeIdx ? " active" : "");
+      pill.className = "pill" + (oi === activeIdx ? " active" : "") + (opt.tag ? " tagged" : "");
       pill.textContent = String(oi + 1);
+      if (opt.tag) pill.title = opt.tag;
       pill.addEventListener("click", () => {
         activeOptionByMeal.set(meal.id, oi);
         renderPlan();
@@ -124,26 +125,85 @@ export function renderPlan() {
 
     const activeOpt = meal.options[activeIdx];
     const panelEl = mealEl.querySelector("[data-role=panel]");
-    panelEl.innerHTML = `<div class="items"></div><button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem;margin-top:4px">+ Alimento</button>`;
+    panelEl.innerHTML = `<div data-role="tag"></div><div class="items"></div><button class="ghost" data-role="add-item" style="padding:4px 10px;font-size:.8rem;margin-top:4px">+ Alimento</button>`;
     panelEl.querySelector("[data-role=add-item]").addEventListener("click", () => {
-      activeOpt.items.push({ id: uid(), name: "", qty: "" });
+      activeOpt.items.push({ id: uid(), name: "", alternatives: [] });
       schedulePersistPlanDay(state.currentPlanDay);
       renderPlan();
     });
 
+    const tagEl = panelEl.querySelector("[data-role=tag]");
+    if (activeOpt.tag) {
+      tagEl.innerHTML = `<span class="tag-badge">★ ${escapeAttr(activeOpt.tag)} <span data-role="tag-remove" class="tag-remove">✕</span></span>`;
+      tagEl.querySelector(".tag-badge").addEventListener("click", async (e) => {
+        if (e.target.closest("[data-role=tag-remove]")) {
+          activeOpt.tag = "";
+          schedulePersistPlanDay(state.currentPlanDay);
+          renderPlan();
+          return;
+        }
+        const newTag = await promptDialog('Tag per questa opzione (es. "Solo se mi alleno"):', activeOpt.tag);
+        if (newTag === null) return;
+        activeOpt.tag = newTag.trim();
+        schedulePersistPlanDay(state.currentPlanDay);
+        renderPlan();
+      });
+    } else {
+      tagEl.innerHTML = `<span class="tag-add-link" data-role="tag-add">+ Aggiungi tag (es. "Solo se mi alleno")</span>`;
+      tagEl.querySelector("[data-role=tag-add]").addEventListener("click", async () => {
+        const newTag = await promptDialog('Tag per questa opzione (es. "Solo se mi alleno"):', "");
+        if (newTag === null || !newTag.trim()) return;
+        activeOpt.tag = newTag.trim();
+        schedulePersistPlanDay(state.currentPlanDay);
+        renderPlan();
+      });
+    }
+
     const itemsEl = panelEl.querySelector(".items");
     activeOpt.items.forEach((item, ii) => {
+      // Vecchi dati: il testo poteva stare in "qty" invece che in "name" — lo recuperiamo.
+      if (!item.name && item.qty) item.name = item.qty;
+      if (!item.alternatives) item.alternatives = [];
+
+      const block = document.createElement("div");
+      block.className = "item-block";
+
       const row = document.createElement("div");
       row.className = "item-row";
       row.innerHTML = `
         <input type="text" placeholder="Alimento" value="${escapeAttr(item.name)}" data-role="item-name">
-        <input type="text" placeholder="Inserisci" value="${escapeAttr(item.qty)}" data-role="item-qty">
         <button class="ghost" data-role="del-item" style="padding:0 10px">✕</button>
       `;
       row.querySelector("[data-role=item-name]").addEventListener("input", e => { item.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
-      row.querySelector("[data-role=item-qty]").addEventListener("input", e => { item.qty = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
       row.querySelector("[data-role=del-item]").addEventListener("click", () => { activeOpt.items.splice(ii, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan(); });
-      itemsEl.appendChild(row);
+      block.appendChild(row);
+
+      const subEl = document.createElement("div");
+      subEl.className = "sub-options";
+      item.alternatives.forEach((alt, ai) => {
+        const subRow = document.createElement("div");
+        subRow.className = "sub-option-row";
+        subRow.innerHTML = `
+          <input type="text" placeholder="Alternativa (es. Cereali)" value="${escapeAttr(alt.name)}" data-role="alt-name">
+          <button class="ghost" data-role="del-alt" style="padding:0 10px">✕</button>
+        `;
+        subRow.querySelector("[data-role=alt-name]").addEventListener("input", e => { alt.name = e.target.value; schedulePersistPlanDay(state.currentPlanDay); });
+        subRow.querySelector("[data-role=del-alt]").addEventListener("click", () => { item.alternatives.splice(ai, 1); schedulePersistPlanDay(state.currentPlanDay); renderPlan(); });
+        subEl.appendChild(subRow);
+      });
+      block.appendChild(subEl);
+
+      const addAltLink = document.createElement("div");
+      addAltLink.className = "add-suboption-link";
+      addAltLink.textContent = item.alternatives.length ? "+ Aggiungi un'altra alternativa" : "+ Aggiungi sotto-opzioni (es. Cereali / Biscotti / Fette)";
+      addAltLink.addEventListener("click", () => {
+        item.alternatives.push({ id: uid(), name: "" });
+        schedulePersistPlanDay(state.currentPlanDay);
+        renderPlan();
+      });
+      block.appendChild(addAltLink);
+
+      itemsEl.appendChild(block);
     });
 
     if (meal.options.length > 1) {

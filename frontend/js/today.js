@@ -45,6 +45,7 @@ export function renderToday() {
     block.innerHTML = `
       <div class="head"><strong>${escapeAttr(meal.name)}</strong></div>
       <div class="pill-row" data-role="pills"></div>
+      <div data-role="tag"></div>
       <div class="items"></div>
     `;
 
@@ -52,8 +53,9 @@ export function renderToday() {
     meal.options.forEach((opt, oi) => {
       const pill = document.createElement("button");
       pill.type = "button";
-      pill.className = "pill" + (opt.id === entry.optionId ? " active" : "");
+      pill.className = "pill" + (opt.id === entry.optionId ? " active" : "") + (opt.tag ? " tagged" : "");
       pill.textContent = String(oi + 1);
+      if (opt.tag) pill.title = opt.tag;
       pill.addEventListener("click", () => {
         entry.optionId = opt.id;
         scheduleSaveLog(dateStr);
@@ -63,12 +65,33 @@ export function renderToday() {
     });
 
     const selectedOption = meal.options.find(o => o.id === entry.optionId) || meal.options[0];
+    const tagEl = block.querySelector("[data-role=tag]");
+    tagEl.innerHTML = selectedOption?.tag ? `<span class="tag-badge">★ ${escapeAttr(selectedOption.tag)}</span>` : "";
     const itemsEl = block.querySelector(".items");
     if (selectedOption && selectedOption.items.length) {
       selectedOption.items.forEach(it => {
+        const name = it.name || it.qty || "";
+        const alternatives = it.alternatives || [];
+
         const line = document.createElement("div");
         line.className = "item-line";
-        line.textContent = `• ${it.name}${it.qty ? " — " + it.qty : ""}`;
+
+        if (alternatives.length) {
+          line.innerHTML = `
+            <div>• ${escapeAttr(name)}</div>
+            <div class="sub-item-list"></div>
+          `;
+          const subListEl = line.querySelector(".sub-item-list");
+          alternatives.forEach(alt => {
+            const subLine = document.createElement("div");
+            subLine.className = "sub-item-line";
+            subLine.textContent = `– ${alt.name || "(senza nome)"}`;
+            subListEl.appendChild(subLine);
+          });
+        } else {
+          line.textContent = `• ${name}`;
+        }
+
         itemsEl.appendChild(line);
       });
     } else {
